@@ -15,51 +15,112 @@ import { createStore } from 'vuex'
 export default store(function (/* { ssrContext } */) {
   const Store = createStore({
     state: {
-      rest: 3,
-      work: 4,
-      timing: 2,
-      timer: null,
-      flag: true,
-      successList: ["任務名稱1","任務名稱2","任務名稱3","任務名稱4","任務名稱5","任務名稱6","任務名稱7","任務名稱8","任務名稱9","任務名稱10"]
+      setting: {
+        checkTimeoutTime: 1000,
+        routineDuration: 5,
+        breakDuration: 3
+      },
+      status: 0, // 0: stop | 1: play | 2: pause
+      playMode: 0, // 0: normal | 1: break
+      timeout: null,
+      timine: 3,
+      // todo
+      activeTodo: 0,
+      todoList: [
+        {
+          id: 0,
+          status: 1, // 0: todo | 1: completed
+          describe: 'test'
+        }
+      ]
     },
-    mutations: {
-      //啟動時鐘
-      start(state) {
-        // return new Promise((resolve, reject) => {
 
-        state.timer = setInterval(() => {
-          console.log(state.timing)
-          if(state.timing <= 0) {
-            clearInterval(state.timer)
-            // resolve(123)
-          }
-          this.dispatch('reduce')
-        },1000)
-
-        // })
+    getters: {
+      undoList (state) {
+        return state.todoList.filter(todo => {
+          return todo.status === 0
+        })
       },
-      //暫停時鐘
-      pause(state) {
-        clearInterval(state.timer)
-      },
-      //設定時鐘
-      setTime(state, time) {
-        state.timing = parseInt(time)
-      },
-      addSuccess(state, name) {
-        state.successList.push(name)
-      },
-      delSuccess(state, index) {
-        state.successList.splice(index, 1)
-      },
-      //減秒數
-      decrement(state) {
-        state.timing--
+      completed (state) {
+        return state.todoList.filter(todo => {
+          return todo.status === 1
+        })
       }
     },
+
+    mutations: {
+      start (state, payload) {
+        clearInterval(state.timeout)
+        state.status = 1
+        // state.timeout = setInterval(payload.callback, state.checkTimeoutTime)
+        state.timeout = setInterval(payload.callback, 1000)
+      },
+      pause (state) {
+        clearInterval(state.timeout)
+        state.status = 2
+      },
+      stop (state) {
+        clearInterval(state.timeout)
+        state.status = 0
+        state.playMode = 0
+        state.timine = state.setting.routineDuration
+      },
+      break (state, payload) {
+        clearInterval(state.timeout)
+        state.playMode = 1
+        state.timine = state.setting.breakDuration
+        // state.timeout = setInterval(payload.callback, state.checkTimeoutTime)
+        state.timeout = setInterval(payload.callback, 1000)
+      },
+      run (state) {
+        state.timine--
+      },
+      changeTodo (state, payload) {
+        state.activeTodo = payload.id
+      },
+      setTimine(state, newTimine) {
+        state.timine = newTimine
+      },
+      addTodoList(state, obj) {
+        state.todoList.push(obj)
+      }
+    },
+
     actions: {
-      reduce({commit}) {
-        commit('decrement')
+      start ({ state, getters, dispatch, commit }) {
+        commit('start', {callback: () => dispatch('run')})
+      },
+      stop ({ state, commit }, payload = 'handed') {
+        switch (payload) {
+          case 'handed':
+            commit('stop')
+            return
+          case 'auto':
+            if (getters.undoList.length > 0) {
+              commit('stop')
+              commit('changeTodo', getters.undoList[0])
+              commit('start')
+            }
+        }
+      },
+      pause ({commit}) { // 需要保持現在時間，不改其他人狀態，計時器停止運作
+        commit('pause')
+      },
+      run ({ state, commit, dispatch }) {
+        if (state.timine === 0) {
+          switch (state.playMode) {
+            case 0:
+              commit('break', {callback: () => dispatch('run')})
+              return
+            case 1:
+              commit('stop', 'auto')
+              return
+          }
+        }
+        commit('run')
+      },
+      changeTodo ({ commit }, payload) {
+        commit('changeTodo', payload)
       }
     },
     modules: {

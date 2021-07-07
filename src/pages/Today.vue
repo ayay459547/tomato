@@ -3,8 +3,8 @@
     <h2>Done({{logList.length}})</h2>
     <q-scroll-area style="height: 75%; width: 100%;">
       <ul>
-        <li v-for="(item, index) in logList" :key="item">
-          {{item}}
+        <li v-for="(item, index) in logList" :key="item.id">
+          {{item.describe}}
           <q-btn @click="del(index)" round icon="delete"></q-btn>
         </li>
       </ul>
@@ -18,7 +18,7 @@ export default {
   name: "Log",
   computed: {
     logList() {
-      return this.$store.state.successList
+      return this.$store.getters.completed
     }
   },
   methods: {

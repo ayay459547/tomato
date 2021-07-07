@@ -20,6 +20,7 @@ export default {
       }
     ]
   },
+  
   getters: {
     undoList (state) {
       return state.filter(todo => {
@@ -32,6 +33,7 @@ export default {
       })
     }
   },
+
   mutations: {
     start (state, payload) {
       clearInterval(state.timeout)
@@ -61,6 +63,7 @@ export default {
       state.activeTodo = payload.id
     }
   },
+
   actions: {
     start ({ state, getters, dispatch, commit }) {
       commit('start', {callback: () => dispatch('run')})
