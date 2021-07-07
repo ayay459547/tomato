@@ -67,6 +67,7 @@ export default store(function (/* { ssrContext } */) {
       },
       break (state, payload) {
         clearInterval(state.timeout)
+        this.dispatch('toDoCompleted')
         state.playMode = 1
         state.timine = state.setting.breakDuration
         // state.timeout = setInterval(payload.callback, state.checkTimeoutTime)
@@ -83,6 +84,9 @@ export default store(function (/* { ssrContext } */) {
       },
       addTodoList(state, obj) {
         state.todoList.push(obj)
+      },
+      toDoCompleted(state) {
+        state.todoList[state.activeTodo + 1].status = 1
       }
     },
 
@@ -121,6 +125,10 @@ export default store(function (/* { ssrContext } */) {
       },
       changeTodo ({ commit }, payload) {
         commit('changeTodo', payload)
+      },
+
+      toDoCompleted({commit}) {
+        commit('toDoCompleted')
       }
     },
     modules: {
