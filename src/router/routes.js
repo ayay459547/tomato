@@ -16,10 +16,10 @@ const routes = [
         path: "detail",
         component: () => import('pages/Detail.vue')
       },
-      {
-        path: "music",
-        component: () => import('pages/Music.vue')
-      },
+      // {
+      //   path: "music",
+      //   component: () => import('pages/Music.vue')
+      // },
       {
         path: "settime",
         component: () => import('pages/SetTime.vue')

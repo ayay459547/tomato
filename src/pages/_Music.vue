@@ -10,8 +10,6 @@
       </ul>
     </div>
 
-    <!-- <audio v-for="item in list" :src="item.src" :key="item.name" controls></audio> -->
-
     <!-- <audio class="audio" :key="audioChangeCounter" controls autoplay loop>
       <source :src="audioUrl">
     </audio> -->
@@ -26,11 +24,12 @@
 
       <q-btn icon="volume_down" @click="decrement('volume', 10)"></q-btn>
       <q-btn icon="volume_up" @click="increment('volume', 10)"></q-btn>
-      <!-- <br/> -->
+
       <q-btn icon="music_note" @click="play" v-show="!audioPlay">play</q-btn>
       <q-btn icon="pause" @click="pause" v-show="audioPlay">pause</q-btn>
       <q-btn icon="stop" @click="stop">stop</q-btn>
-      <!-- <button @click="testValue++">{{testValue}}</button> -->
+
+      <!-- <button @click="console.log(number)">add</button> -->
     </div>
   </div>
 </template>
@@ -38,15 +37,13 @@
 <script>
 import bus from "boot/bus"
 import AudioControls from 'boot/audioControls'
-// import music from "assets/music"
 
 export default {
   name: "Music",
-  inject: ["changeSong"],
+  inject: ["changeSong",'number'],
   data(){
     return {
       audioPlay: false,
-      // musicList: ["song1","song2","song3","song4","song5"],
       current: 0,
       audioChangeCounter: 0,
       audioControls: null,
@@ -67,13 +64,12 @@ export default {
           name: "song5",
           src: require("assets/music/song5.mp3")
         }
-      ]
+      ],
+      audioEl: null
     }
   },
   computed: {
     audioUrl() {
-      // return `../assets/music/${this.musicList[this.current]}.mp3`
-      // return `/media/${this.musicList[this.current]}.mp3`
       return this.musicList[this.current].src
     }
   },
@@ -82,6 +78,7 @@ export default {
       this.audioPlay = true
       this.current = index
       this.audioChangeCounter++
+      this.audioEl = 
 
       bus.emit("changeSong",{
         url: this.audioUrl,
@@ -89,36 +86,31 @@ export default {
       })
     },
     play(){
-      // console.log(this.$parent.$parent.$refs.audio)
       this.audioPlay = true
-      this.audioControls = new AudioControls(this.$parent.$parent.$refs.audio)
-      this.audioControls.changeAudioStatus('play')
+      AudioControls(".audio").status('play')
     },
     pause(){
       this.audioPlay = false
-      this.audioControls = new AudioControls(this.$parent.$parent.$refs.audio)
-      this.audioControls.changeAudioStatus('pause')
+      AudioControls(".audio").status('pause')
     },
     stop(){
-      this.audioControls = new AudioControls(this.$parent.$parent.$refs.audio)
-      this.audioControls.changeAudioStatus('stop')
+      this.audioPlay = false
+      AudioControls(".audio").status('stop')
     },
 
     //音量 和 進度 控制
     increment(type){
-      this.audioControls = new AudioControls(this.$parent.$parent.$refs.audio)
       if(type === "volume") {
-        this.audioControls.volumeControls(0.2)
+        AudioControls(".audio").volume(0.2)
       }else {
-        this.audioControls.progressControls(10)
+        AudioControls(".audio").progress(10)
       }
     },
     decrement(type){
-      this.audioControls = new AudioControls(this.$parent.$parent.$refs.audio)
       if(type === "volume") {
-        this.audioControls.volumeControls(-0.2)
+        AudioControls(".audio").volume(-0.2)
       }else {
-        this.audioControls.progressControls(-10)
+        AudioControls(".audio").progress(-10)
       }
     }
   },

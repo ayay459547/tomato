@@ -1,14 +1,14 @@
 <template>
-  <div class="container" :class="{'bg-blue': isBgBlue}">
+  <div class="container" :class="{'bg-blue': playMode}">
     <div class="row">
       <div class="col-9" @click.stop="routerPush('timing', 0)">
-        <h4 v-show="!isShow && !isBgBlue">當前任務 : {{undoList[activeTodo]}}</h4>
-        <h4 v-show="isBgBlue">休息</h4>
+        <h4 v-show="!isShow && !playMode">當前任務 : {{undoList[activeTodo]}}</h4>
+        <h4 v-show="playMode">休息</h4>
         <q-input
           class="input"
           @click.stop="title = ''"
           @blur="title = title === ''? '輸入任務名稱': title" 
-          v-show="isShow && !isBgBlue" 
+          v-show="isShow && !playMode" 
           v-model="title"
           @keyup.enter="addTitle(title)">
           <template v-slot:append>
@@ -19,14 +19,14 @@
         <div class="title">
           <h4 v-if="!undoList.length" style="opacity:0.4">沒有任務</h4>
           <q-scroll-area v-else style="height: 100%; width: 100%">
-            <ul v-show="!isBgBlue">
-              <li v-for="(item, index) in undoList" 
+            <ul v-show="!playMode">
+              <li v-for="item in undoList" 
                 :key="item.id"
-                :class="{border:activeTodo === index}"
+                :class="{border:activeTodo === item.id}"
                 @click.stop="changeTitle(item)">
                 <q-icon name="alarm"></q-icon>
                 {{item.describe}}
-                <q-btn icon="delete" @click.stop="del(index)" round></q-btn>
+                <q-btn icon="delete" @click.stop="del(item)" round></q-btn>
               </li>
             </ul>
           </q-scroll-area>
@@ -54,6 +54,45 @@
       </div>
     </div>
 
+    <div class="music">
+      <q-card :class="{musicShow: musicShow}"
+        class="my-card" 
+        style="background: pink">
+        <q-card-section>
+          <div class="text-h6">music list
+            <q-btn icon="close" 
+              style="width:40px; height: 40px; margin: 10px 10px 0 0"
+              class="absolute-top-right"
+              @click="musicShow = false, musicBtnHide = false"></q-btn>
+          </div>
+        </q-card-section>
+        <q-separator />
+        <q-card-actions vertical>
+          <q-btn flat v-for="(item, index) in musicList"
+            :key="item.name"
+            :class="{musicActive: musicActive == index}"
+            @click.stop="changeSong(index)">{{item.name}}</q-btn>
+        </q-card-actions>
+        <q-separator />
+        <q-card-section>
+          <q-btn style="width: 60px" icon="fast_rewind" @click.stop="decrement('progress', 0.1)"></q-btn>
+          <q-btn style="width: 60px" icon="fast_forward" @click.stop="increment('progress', 0.1)"></q-btn>
+          <q-btn style="width: 60px" icon="volume_down" @click.stop="decrement('volume', 10)"></q-btn>
+          <q-btn style="width: 60px" icon="volume_up" @click.stop="increment('volume', 10)"></q-btn>
+          <br/>
+          <q-btn style="width: 80px" @click.stop="audioStatus('play')">play</q-btn>
+          <q-btn style="width: 80px" @click.stop="audioStatus('pause')">pause</q-btn>
+          <q-btn style="width: 80px" @click.stop="audioStatus('stop')">stop</q-btn>
+        </q-card-section>
+      </q-card>
+
+      <q-btn :class="{musicBtnHide: musicBtnHide}" 
+        icon="library_music" size="lg" 
+        class="absolute-bottom-right" 
+        @click="musicShow = !musicShow, musicBtnHide = !musicBtnHide"
+        ></q-btn>
+    </div>
+
     <audio class="audio"
       ref="audio"
       v-show="audioChangeCounter" 
@@ -63,14 +102,12 @@
     </audio>
     
     <div class="listRouter" :class="{active: routerAcitve}">
-      <router-view @SetTimeClose='routerPush("timing",4)'></router-view>
+      <router-view @SetTimeClose='routerPush("timing",3)'></router-view>
     </div>
   </div>
 </template>
 
 <script>
-import bus from "boot/bus"
-
 export default {
   name: 'MainLayout',
   data() {
@@ -90,10 +127,6 @@ export default {
           icon: "description"
         },
         {
-          name: "music",
-          icon: "music_note",
-        },
-        {
           name: "setTime",
           icon: "settings",
         }
@@ -101,9 +134,12 @@ export default {
       curr: 0,
       titleList: [],
       isShow: true,
-      audioUrl: "",
       audioChangeCounter: 0,
       routerAcitve: false,
+      musicShow: false,
+      musicBtnHide: false,
+      currControls: null,
+      audioEl: null
     }
   },
   computed: {
@@ -116,34 +152,46 @@ export default {
       return time >= 10 ? time : `0${time}`
     },
     alarm() {
-      return this.$store.state.timine
-    },
-    today() {
-      let date = new Date()
-      return `${date.getMonth() + 1}/${date.getDate()}`
-    },
-    isBgBlue() {
-      return this.$store.state.playMode
+      return this.$store.state.clock.timine
     },
     playMode() {
-      return this.$store.state.playMode
+      return this.$store.state.clock.playMode
     },
-
     activeTodo() {
-      return this.$store.state.activeTodo
+      return this.$store.state.clock.activeTodo
+    },
+    todoList() {
+      return this.$store.state.clock.todoList
     },
     undoList() {
-      return this.$store.getters.undoList
+      return this.$store.getters['clock/undoList']
     },
+ 
+
+    musicList() {
+      return this.$store.state.audio.musicList
+    },
+    audioUrl() {
+      return `${this.$store.getters['audio/currentSong']}`
+    },
+    musicActive() {
+      return this.$store.state.audio.current
+    }
   },
-  provide () {
-    return {
-      changeSong: this.changeSong
+  watch: {
+    playMode: function (newValue, oddValue) {
+      if(newValue == 0 && oddValue == 1) {
+        if(this.undoList.length == 0) {
+          this.audioStatus('stop')
+        }
+      }
     }
   },
   methods: {
-    //換頁
+    //換路由
     routerPush(router, index) {
+      this.musicShow = false
+      this. musicBtnHide = false
       this.$router.push(router)
       
       if(index !== 0 && this.curr !== index){
@@ -157,7 +205,6 @@ export default {
       }else{
         this.routerAcitve = false
       }
-      
     },
     //開始計時
     start() {
@@ -165,17 +212,16 @@ export default {
         alert("沒有任務")
         return false
       }
-
-      this.$store.dispatch('start')
+      this.$store.dispatch('clock/start')
     },
     pause() {
-      this.$store.dispatch('pause')
+      this.$store.dispatch('clock/pause')
     },
     stop() {
-      this.$store.dispatch('stop')
+      this.$store.dispatch('clock/stop')
     },
     run() {
-      this.$store.dispatch('run')
+      this.$store.dispatch('clock/run')
     },
     //增加任務
     addTitle(value) {
@@ -184,27 +230,64 @@ export default {
         return false
       }
       const obj = {
-        id: this.undoList.length,
+        id: this.todoList.length,
         status: 0,
         describe: value
       }
-      this.$store.commit('addTodoList', obj)
+      this.$store.commit('clock/addTodoList', obj)
+      this.$store.dispatch('clock/changeTodo', this.undoList[0])
       this.title = ''
     },
     //換當前任務
     changeTitle(item) {
-      this.$store.dispatch('changeTodo', item)
+      this.$store.dispatch('clock/changeTodo', item)
     },
     //刪除任務
-    del(index) {
-      this.undoList.splice(index, 1)
+    del(item) {
+      this.$store.commit('clock/delTodoList', item)
+      this.$store.dispatch('clock/changeTodo', this.undoList[0])
+    },
+
+    //音樂控制
+    audioStatus(type) {
+      switch(type) {
+        case 'play':
+          this.$store.dispatch('audio/audioPlay')
+          return
+        case 'pause': 
+          this.$store.dispatch('audio/audioPause')
+          return
+        case 'stop': 
+          this.$store.dispatch('audio/audioStop')
+          return
+      }
+    },
+    //音量 和 進度 控制
+    increment(type){
+      if(type === "volume") {
+        this.$store.dispatch('audio/volume', 0.2)
+      }else {
+        this.$store.dispatch('audio/progress', 10)
+      }
+    },
+    decrement(type){
+      if(type === "volume") {
+        this.$store.dispatch('audio/volume', -0.2)
+      }else {
+        this.$store.dispatch('audio/progress', -10)
+      }
+    },
+    changeSong(index) {
+      //audio :key
+      this.audioChangeCounter++
+
+      this.$store.dispatch('audio/changeSong', index)
+      this.$nextTick(() => this.$store.commit('audio/setAudioEl', this.$refs['audio']))
     }
   },
   mounted() {
-    bus.on("changeSong", (val) => {
-      this.audioUrl = val.url
-      this.audioChangeCounter = val.count
-    })
+    this.$store.dispatch('audio/changeSong', 0)
+    this.$store.commit('audio/setAudioEl', this.$refs['audio'])
   },
 }
 </script>
@@ -286,6 +369,36 @@ export default {
           flex: 1;
         }
       }
+    }
+  }
+
+  .music {
+
+    .musicActive {
+      background: rgb(255, 176, 176);
+    }
+    .my-card {
+      opacity: 0;
+      display: none;
+      transition: all 0.2s;
+
+      &.musicShow {
+        display: block;
+        opacity: 1;
+      }
+    }
+    
+    position: absolute;
+    border-radius: 10px;
+    bottom: 10%;
+    right: 25%;
+
+    &.active {
+      width: 300px;
+    }
+
+    .musicBtnHide {
+      display: none;
     }
   }
 

@@ -27,13 +27,13 @@ export default {
   },
   methods: {
     toggle() {
-      this.$store.commit('setTimine', this.timing)
+      this.$store.commit('clock/setTimine', this.timing)
       this.$emit("SetTimeClose")
     }
   },
   mounted() {
-    this.min = parseInt(this.$store.state.timine / 60)
-    this.sec = parseInt(this.$store.state.timine % 60)
+    this.min = parseInt(this.$store.state.clock.timine / 60)
+    this.sec = parseInt(this.$store.state.clock.timine % 60)
   }
 }
 </script>

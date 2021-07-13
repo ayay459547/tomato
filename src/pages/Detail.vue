@@ -33,9 +33,7 @@ export default {
       })
     }
   },
-  mounted() {
-    console.log(this.today)
-  },
+
 }
 </script>
 
